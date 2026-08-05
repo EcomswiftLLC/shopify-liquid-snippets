@@ -1,0 +1,51 @@
+{%- comment -%}
+  Product badge snippet
+  Shows Sale / Sold out / New / Low stock badges on a product card.
+
+  Usage:
+    {%- render 'product-badge', product: product, new_for_days: 30, low_stock_at: 5 -%}
+
+  Params:
+    product        (object)  required - the product object
+    new_for_days   (number)  optional - product counts as "new" if published within X days (default 30)
+    low_stock_at   (number)  optional - show "Only N left" at or under this quantity (default 5)
+{%- endcomment -%}
+
+{%- liquid
+  assign new_for_days = new_for_days | default: 30
+  assign low_stock_at = low_stock_at | default: 5
+  assign seconds_new = new_for_days | times: 86400
+  assign published = product.published_at | date: '%s' | plus: 0
+  assign now = 'now' | date: '%s' | plus: 0
+  assign age = now | minus: published
+-%}
+
+<div class="product-badges" data-product-id="{{ product.id }}">
+  {%- if product.available == false -%}
+    <span class="badge badge--sold-out">{{ 'products.product.sold_out' | t }}</span>
+  {%- elsif product.compare_at_price > product.price -%}
+    {%- assign saved = product.compare_at_price | minus: product.price -%}
+    {%- assign percent = saved | times: 100.0 | divided_by: product.compare_at_price | round -%}
+    <span class="badge badge--sale">-{{ percent }}%</span>
+  {%- endif -%}
+
+  {%- if age < seconds_new and product.available -%}
+    <span class="badge badge--new">New</span>
+  {%- endif -%}
+
+  {%- if product.available and product.selected_or_first_available_variant.inventory_management == 'shopify' -%}
+    {%- assign qty = product.selected_or_first_available_variant.inventory_quantity -%}
+    {%- if qty > 0 and qty <= low_stock_at -%}
+      <span class="badge badge--low-stock">Only {{ qty }} left</span>
+    {%- endif -%}
+  {%- endif -%}
+</div>
+
+<style>
+  .product-badges { display: flex; flex-wrap: wrap; gap: .25rem; }
+  .badge { font: 600 11px/1 system-ui, sans-serif; letter-spacing: .04em; text-transform: uppercase; padding: .4em .6em; border-radius: 999px; color: #fff; }
+  .badge--sale { background: #b3242b; }
+  .badge--sold-out { background: #6b7280; }
+  .badge--new { background: #111827; }
+  .badge--low-stock { background: #b45309; }
+</style>
