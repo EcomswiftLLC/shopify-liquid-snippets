@@ -1,0 +1,92 @@
+{%- comment -%}
+  Metafield renderer - prints any metafield safely, whatever its type.
+
+  Usage:
+    {%- render 'metafield', field: product.metafields.custom.care_instructions -%}
+    {%- render 'metafield', field: product.metafields.custom.spec_sheet, label: 'Spec sheet' -%}
+
+  Params:
+    field (object) required - a metafield object, e.g. product.metafields.NAMESPACE.KEY
+    label (string) optional - heading rendered above the value
+
+  Supported types: single_line_text_field, multi_line_text_field, rich_text_field,
+  number_integer, number_decimal, boolean, date, date_time, url, money,
+  rating, color, file_reference, product_reference, list.* and metaobject_reference.
+{%- endcomment -%}
+
+{%- if field != blank and field.value != blank -%}
+  <div class="metafield metafield--{{ field.type | replace: '.', '-' | replace: '_', '-' }}">
+    {%- if label -%}<h3 class="metafield__label">{{ label }}</h3>{%- endif -%}
+
+    {%- case field.type -%}
+
+      {%- when 'rich_text_field' -%}
+        <div class="metafield__rich">{{ field | metafield_tag }}</div>
+
+      {%- when 'multi_line_text_field' -%}
+        <div class="metafield__text">{{ field.value | newline_to_br }}</div>
+
+      {%- when 'boolean' -%}
+        <span>{% if field.value %}Yes{% else %}No{% endif %}</span>
+
+      {%- when 'date' -%}
+        <time datetime="{{ field.value | date: '%Y-%m-%d' }}">{{ field.value | date: '%b %d, %Y' }}</time>
+
+      {%- when 'date_time' -%}
+        <time datetime="{{ field.value | date: '%Y-%m-%dT%H:%M:%S%z' }}">{{ field.value | date: '%b %d, %Y at %l:%M %p' }}</time>
+
+      {%- when 'money' -%}
+        <span>{{ field.value | money }}</span>
+
+      {%- when 'rating' -%}
+        {%- assign stars = field.value.rating | round -%}
+        <span aria-label="{{ field.value.rating }} out of {{ field.value.scale_max }}">
+          {%- for i in (1..field.value.scale_max) -%}{% if i <= stars %}&#9733;{% else %}&#9734;{% endif %}{%- endfor -%}
+        </span>
+
+      {%- when 'url' -%}
+        <a href="{{ field.value }}" rel="noopener">{{ field.value }}</a>
+
+      {%- when 'color' -%}
+        <span class="metafield__swatch" style="background: {{ field.value }}"></span>
+
+      {%- when 'file_reference' -%}
+        {%- if field.value.media_type == 'image' -%}
+          {%- render 'responsive-image', image: field.value, sizes: '100vw' -%}
+        {%- else -%}
+          <a href="{{ field.value.url }}" download>Download file</a>
+        {%- endif -%}
+
+      {%- when 'product_reference' -%}
+        <a href="{{ field.value.url }}">{{ field.value.title }}</a>
+
+      {%- when 'list.single_line_text_field' -%}
+        <ul class="metafield__list">
+          {%- for item in field.value -%}<li>{{ item }}</li>{%- endfor -%}
+        </ul>
+
+      {%- when 'list.product_reference' -%}
+        <ul class="metafield__list">
+          {%- for item in field.value -%}<li><a href="{{ item.url }}">{{ item.title }}</a></li>{%- endfor -%}
+        </ul>
+
+      {%- when 'metaobject_reference' -%}
+        <div class="metafield__metaobject">
+          {%- for f in field.value.fields -%}
+            <p><strong>{{ f.key | replace: '_', ' ' | capitalize }}:</strong> {{ f.value }}</p>
+          {%- endfor -%}
+        </div>
+
+      {%- else -%}
+        <span>{{ field.value }}</span>
+
+    {%- endcase -%}
+  </div>
+{%- endif -%}
+
+<style>
+  .metafield { margin: 1rem 0; }
+  .metafield__label { font-size: 14px; margin: 0 0 .35rem; }
+  .metafield__list { margin: 0; padding-left: 1.1rem; }
+  .metafield__swatch { display: inline-block; width: 1.25rem; height: 1.25rem; border-radius: 50%; border: 1px solid #d1d5db; }
+</style>
