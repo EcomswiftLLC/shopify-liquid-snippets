@@ -1,0 +1,56 @@
+{%- comment -%}
+  Responsive image snippet (Online Store 2.0 friendly)
+
+  Usage:
+    {%- render 'responsive-image',
+        image: product.featured_image,
+        sizes: '(min-width: 750px) 50vw, 100vw',
+        alt: product.title,
+        ratio: '4/5' -%}
+
+  Params:
+    image    (object)  required - Shopify image or media.preview_image
+    widths   (string)  optional - comma separated srcset widths
+    sizes    (string)  optional - the sizes attribute (default 100vw)
+    alt      (string)  optional - alt text, falls back to image.alt
+    loading  (string)  optional - 'lazy' (default) or 'eager'
+    class    (string)  optional - extra CSS classes
+    ratio    (string)  optional - e.g. '1/1', '4/5'. Reserves space to stop layout shift.
+{%- endcomment -%}
+
+{%- liquid
+  assign widths = widths | default: '360,540,720,900,1080,1296,1512,1728'
+  assign sizes = sizes | default: '100vw'
+  assign loading = loading | default: 'lazy'
+  assign alt = alt | default: image.alt | escape
+  assign width_list = widths | split: ','
+-%}
+
+{%- if image != blank -%}
+  <img
+    src="{{ image | image_url: width: 720 }}"
+    srcset="
+      {%- for w in width_list -%}
+        {%- assign wn = w | strip | plus: 0 -%}
+        {%- if wn <= image.width -%}
+          {{ image | image_url: width: wn }} {{ wn }}w,
+        {%- endif -%}
+      {%- endfor -%}
+    "
+    sizes="{{ sizes }}"
+    alt="{{ alt }}"
+    width="{{ image.width }}"
+    height="{{ image.height }}"
+    loading="{{ loading }}"
+    {% if loading == 'eager' %}fetchpriority="high"{% endif %}
+    decoding="async"
+    class="responsive-image {{ class }}"
+    {% if ratio %}style="aspect-ratio: {{ ratio }}; object-fit: cover;"{% endif %}
+  >
+{%- else -%}
+  {{ 'image' | placeholder_svg_tag: 'responsive-image responsive-image--placeholder' }}
+{%- endif -%}
+
+<style>
+  .responsive-image { display: block; max-width: 100%; height: auto; }
+</style>
