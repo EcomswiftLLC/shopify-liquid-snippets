@@ -1,0 +1,67 @@
+{%- comment -%}
+  Price snippet
+  Renders price, compare-at price, savings, unit price and tax note.
+
+  Usage:
+    {%- render 'price', product: product -%}
+    {%- render 'price', variant: variant, show_savings: true -%}
+
+  Params:
+    product       (object)  optional - product object (uses selected_or_first_available_variant)
+    variant       (object)  optional - variant object, takes priority over product
+    show_savings  (boolean) optional - render the "Save X" label (default true)
+{%- endcomment -%}
+
+{%- liquid
+  if variant
+    assign target = variant
+  else
+    assign target = product.selected_or_first_available_variant
+  endif
+
+  assign on_sale = false
+  if target.compare_at_price > target.price
+    assign on_sale = true
+  endif
+-%}
+
+<div class="price {% if on_sale %}price--on-sale{% endif %}">
+  <span class="price__current" data-price>
+    {%- if product.price_varies and variant == nil -%}
+      From {{ product.price_min | money }}
+    {%- else -%}
+      {{ target.price | money }}
+    {%- endif -%}
+  </span>
+
+  {%- if on_sale -%}
+    <s class="price__compare">{{ target.compare_at_price | money }}</s>
+    {%- unless show_savings == false -%}
+      {%- assign saved = target.compare_at_price | minus: target.price -%}
+      <span class="price__savings">Save {{ saved | money }}</span>
+    {%- endunless -%}
+  {%- endif -%}
+
+  {%- if target.unit_price_measurement -%}
+    <span class="price__unit">
+      {{ target.unit_price | money }} /
+      {%- if target.unit_price_measurement.reference_value != 1 -%}
+        {{ target.unit_price_measurement.reference_value }}
+      {%- endif -%}
+      {{ target.unit_price_measurement.reference_unit }}
+    </span>
+  {%- endif -%}
+
+  {%- if target.taxable and cart.taxes_included == false -%}
+    <small class="price__tax-note">Excl. tax</small>
+  {%- endif -%}
+</div>
+
+<style>
+  .price { display: flex; align-items: baseline; flex-wrap: wrap; gap: .5rem; }
+  .price__current { font-weight: 600; }
+  .price--on-sale .price__current { color: #b3242b; }
+  .price__compare { color: #6b7280; }
+  .price__savings { font-size: 12px; background: #fdecec; color: #b3242b; padding: .2em .5em; border-radius: 4px; }
+  .price__unit, .price__tax-note { font-size: 12px; color: #6b7280; }
+</style>
