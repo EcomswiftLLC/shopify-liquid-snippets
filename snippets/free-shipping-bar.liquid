@@ -1,0 +1,51 @@
+{%- comment -%}
+  Free shipping progress bar for the cart page or cart drawer.
+
+  Usage:
+    {%- render 'free-shipping-bar', threshold: 5000 -%}
+
+  Params:
+    threshold (number) required - free shipping threshold in cents of the shop currency
+                                 (5000 = 50.00). Tip: store it in a shop metafield and pass
+                                 shop.metafields.custom.free_shipping_threshold.value
+{%- endcomment -%}
+
+{%- liquid
+  assign threshold = threshold | default: 5000
+  assign remaining = threshold | minus: cart.total_price
+  assign percent = cart.total_price | times: 100 | divided_by: threshold
+  if percent > 100
+    assign percent = 100
+  endif
+-%}
+
+<div class="ship-bar" data-threshold="{{ threshold }}">
+  {%- if remaining > 0 -%}
+    <p class="ship-bar__text">Spend {{ remaining | money }} more for free shipping.</p>
+  {%- else -%}
+    <p class="ship-bar__text ship-bar__text--done">Nice! You have unlocked free shipping.</p>
+  {%- endif -%}
+
+  <div class="ship-bar__track"
+       role="progressbar"
+       aria-valuenow="{{ percent }}"
+       aria-valuemin="0"
+       aria-valuemax="100">
+    <div class="ship-bar__fill" style="width: {{ percent }}%"></div>
+  </div>
+</div>
+
+<style>
+  .ship-bar { margin: 1rem 0; }
+  .ship-bar__text { font-size: 13px; margin: 0 0 .5rem; }
+  .ship-bar__text--done { color: #15803d; font-weight: 600; }
+  .ship-bar__track { height: 8px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
+  .ship-bar__fill { height: 100%; background: #15803d; transition: width .3s ease; }
+</style>
+
+{%- comment -%}
+  Cart drawer note: re-render this snippet whenever the cart updates.
+  With the Cart AJAX API you can request the updated section:
+    fetch('/cart/change.js', { ... , body: JSON.stringify({ id, quantity, sections: 'cart-drawer' }) })
+  then swap in the returned section HTML so the bar stays accurate.
+{%- endcomment -%}
